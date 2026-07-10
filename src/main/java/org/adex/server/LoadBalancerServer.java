@@ -4,7 +4,9 @@ public interface LoadBalancerServer {
 
     void start() throws Exception;
 
-    void stop() throws Exception;
+    void stop();
 
     boolean isRunning();
+
+    int port();
 }

@@ -1,25 +1,78 @@
 package org.adex.server;
 
+import com.sun.net.httpserver.HttpServer;
+import org.adex.proxy.ReverseProxy;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class DefaultLoadBalancerServer implements LoadBalancerServer {
 
     private final int port;
+    private final ReverseProxy proxy;
+    private HttpServer server;
+    private final AtomicBoolean running = new AtomicBoolean(false);
 
-    public DefaultLoadBalancerServer(int port) {
+    public DefaultLoadBalancerServer(int port, ReverseProxy proxy) {
         this.port = port;
+        this.proxy = Objects.requireNonNull(proxy, "reverse proxy cannot be null");
     }
 
     @Override
     public void start() throws Exception {
 
+        if (running.get()) {
+            throw new IllegalStateException("Server is already stopped");
+        }
+
+        try {
+            server = HttpServer.create(new InetSocketAddress(port), 0);
+            server.createContext("/", exchange -> {
+                try {
+                    proxy.forward(exchange);
+                } catch (Exception e) {
+                    e.printStackTrace();
+
+                    byte[] res = "Internal Server Error".getBytes();
+                    exchange.sendResponseHeaders(500, res.length);
+                    exchange.getResponseBody().write(res);
+                } finally {
+                    exchange.close();
+                }
+            });
+            server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
+            server.start();
+
+            running.set(true);
+        } catch (IOException e) {
+            throw new Exception("Failed to start load balancer on port " + port, e);
+        }
+
     }
 
     @Override
-    public void stop() throws Exception {
+    public synchronized void stop() {
+        if (!running.get()) {
+            return;
+        }
 
+        if (server != null) {
+            server.stop(0);
+        }
+
+        running.set(false);
     }
 
     @Override
     public boolean isRunning() {
-        return false;
+        return running.get();
+    }
+
+    @Override
+    public int port() {
+        return port;
     }
 }

@@ -1,6 +1,8 @@
 package org.adex.proxy;
 
+import com.sun.net.httpserver.HttpExchange;
+
 public interface ReverseProxy {
 
-    void forward(Object req, Object resp);
+    void forward(HttpExchange exchange) throws Exception;
 }

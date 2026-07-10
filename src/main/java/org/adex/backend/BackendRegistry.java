@@ -4,11 +4,15 @@ import java.util.Set;
 
 public interface BackendRegistry {
 
-    void register(Backend backend);
+    BackendRegistry register(Backend backend);
 
-    void unregister(Backend backend);
+    void unregister(String backendId);
 
-    Set<Backend> backends();
+    Set<Backend> allBackends();
 
-    Set<Backend> available();
+    Set<Backend> onlyAvailableBackends();
+
+    BackendRegistry upateStatus(String backendId, BackendStatus newStatus);
+
+    BackendStatus getStatus(String backendId);
 }

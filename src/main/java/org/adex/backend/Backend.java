@@ -1,3 +1,8 @@
 package org.adex.backend;
 
-public record Backend(String id, String host, int port, int weight) {}
+public record Backend(String id, String host, int port, int weight) {
+
+    public String url() {
+        return "http://" + host + ":" + port;
+    }
+}
