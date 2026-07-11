@@ -1,8 +1,4 @@
-package org.adex.config;
-
-import org.adex.strategy.LoadBalancingStrategy;
-import org.adex.strategy.RoundRobinStrategy;
-import org.adex.strategy.WeightedRoundRobinStrategy;
+package org.adex.strategy;
 
 public final class StrategyFactory {
 

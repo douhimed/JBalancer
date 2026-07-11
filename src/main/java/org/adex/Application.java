@@ -2,10 +2,10 @@ package org.adex;
 
 import org.adex.backend.BackendRegistry;
 import org.adex.backend.DefaultBackendRegistry;
-import org.adex.config.HealthCheck;
+import org.adex.config.ConfigLoader;
+import org.adex.health.HealthCheck;
 import org.adex.config.LoadBalancerConfig;
-import org.adex.config.StrategyFactory;
-import org.adex.config.YamlConfigLoader;
+import org.adex.strategy.StrategyFactory;
 import org.adex.health.DefaultHealthChecker;
 import org.adex.health.HealthCheckScheduler;
 import org.adex.health.HealthCheckService;
@@ -28,7 +28,7 @@ public interface Application {
         LoadBalancerServer server = null;
 
         try {
-            LoadBalancerConfig loadBalancerConfig = new YamlConfigLoader().load(args[0]);
+            LoadBalancerConfig loadBalancerConfig = ConfigLoader.from(args[0]);
 
             final BackendRegistry backendRegistry = new DefaultBackendRegistry();
 

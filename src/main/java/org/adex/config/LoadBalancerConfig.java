@@ -1,6 +1,9 @@
 package org.adex.config;
 
 import org.adex.backend.Backend;
+import org.adex.health.HealthCheck;
+import org.adex.server.ServerConfig;
+import org.adex.strategy.LoadBalancerStrategy;
 
 import java.util.Set;
 import java.util.stream.Collectors;

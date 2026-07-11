@@ -1,6 +1,6 @@
 server:
   port: 8080
-  strategy: ROUND_ROBIN
+  strategy: WEIGHTED_ROUND_ROBIN
   # Available values:
   # - ROUND_ROBIN
   # - WEIGHTED_ROUND_ROBIN
