@@ -48,11 +48,5 @@ public class YamlConfigLoader implements ConfigLoader {
         if (!Files.isReadable(path)) {
             throw new IllegalArgumentException("Configuration file is not readable: " + path);
         }
-
-        String fileName = path.getFileName().toString().toLowerCase();
-
-        if (!(fileName.endsWith(".yml") || fileName.endsWith(".yaml"))) {
-            throw new IllegalArgumentException("Configuration file must have .yml or .yaml extension");
-        }
     }
 }
