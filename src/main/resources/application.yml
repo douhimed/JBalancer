@@ -19,7 +19,7 @@ services:
   - id: backend-2
     host: localhost
     port: 9002
-    weight: 2
+    weight: 3
 
   - id: backend-3
     host: localhost

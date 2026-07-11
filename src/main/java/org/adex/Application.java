@@ -5,6 +5,9 @@ import org.adex.backend.DefaultBackendRegistry;
 import org.adex.config.ConfigLoader;
 import org.adex.health.HealthCheck;
 import org.adex.config.LoadBalancerConfig;
+import org.adex.metrics.DefaultMetricsCollector;
+import org.adex.metrics.MetricsCollector;
+import org.adex.metrics.MetricsHandler;
 import org.adex.strategy.StrategyFactory;
 import org.adex.health.DefaultHealthChecker;
 import org.adex.health.HealthCheckScheduler;
@@ -47,8 +50,9 @@ public interface Application {
             final LoadBalancingStrategy roundRobinStrategy = StrategyFactory.create(loadBalancerConfig.strategy());
 
             final RequestForwarder requestForwarder = new DefaultRequestForwarder();
-            final DefaultReverseProxy proxy = new DefaultReverseProxy(backendRegistry, roundRobinStrategy, requestForwarder);
-            server = new DefaultLoadBalancerServer(loadBalancerConfig.port(), proxy);
+            final MetricsCollector metricsCollector = new DefaultMetricsCollector();
+            final DefaultReverseProxy proxy = new DefaultReverseProxy(backendRegistry, roundRobinStrategy, requestForwarder, metricsCollector);
+            server = new DefaultLoadBalancerServer(loadBalancerConfig.port(), proxy, metricsCollector);
 
             server.start();
 
@@ -64,9 +68,6 @@ public interface Application {
                                 LOGGER.info("Load balancer stoped");
                             })
                     );
-
-
-
         } catch (Exception e) {
             LOGGER.error("Failed to start load balancer", e);
             if (server != null && server.isRunning()) {
