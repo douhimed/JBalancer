@@ -12,6 +12,21 @@ public final class WeightedRoundRobinStrategy implements LoadBalancingStrategy {
 
     private final AtomicInteger counter = new AtomicInteger(0);
 
+    private static WeightedRoundRobinStrategy instance;
+
+    public WeightedRoundRobinStrategy() {
+        if (Objects.nonNull(instance)) {
+            throw new IllegalStateException("WeightedRoundRobinStrategy has already been initialized, use getInstance() instead.");
+        }
+    }
+
+    public static WeightedRoundRobinStrategy getInstance() {
+        if (Objects.isNull(instance)) {
+            instance = new WeightedRoundRobinStrategy();
+        }
+        return instance;
+    }
+
     @Override
     public Backend select(Set<Backend> backends) {
 

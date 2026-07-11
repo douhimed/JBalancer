@@ -8,12 +8,12 @@ import java.net.http.HttpResponse;
 
 public class DefaultHealthChecker implements HealthChecker {
 
-    private static final String HEALTH_ENDPOINT = "/health";
-
     private final HttpClient httpClient;
+    private final String endPoint;
 
 
-    public DefaultHealthChecker() {
+    public DefaultHealthChecker(String endPoint) {
+        this.endPoint = endPoint;
         httpClient = HttpClient.newBuilder().build();
     }
 
@@ -21,7 +21,7 @@ public class DefaultHealthChecker implements HealthChecker {
     public boolean check(Backend backend) {
 
         try {
-            URI uri = URI.create(backend.url() + HEALTH_ENDPOINT);
+            URI uri = URI.create(backend.url() + endPoint);
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(uri)
                     .GET()

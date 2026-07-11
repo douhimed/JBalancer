@@ -5,6 +5,7 @@ import java.util.Set;
 public interface BackendRegistry {
 
     BackendRegistry register(Backend backend);
+    BackendRegistry register(Set<Backend> backend);
 
     void unregister(String backendId);
 

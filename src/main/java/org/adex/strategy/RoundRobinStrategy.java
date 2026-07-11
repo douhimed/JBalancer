@@ -9,6 +9,21 @@ public final class RoundRobinStrategy implements LoadBalancingStrategy {
 
     private final AtomicInteger counter = new AtomicInteger(0);
 
+    private static RoundRobinStrategy instance;
+
+    public RoundRobinStrategy() {
+        if (Objects.nonNull(instance)) {
+            throw new IllegalStateException("Strategy already initialized, use getInstance() instead");
+        }
+    }
+
+    public static RoundRobinStrategy getInstance() {
+        if (Objects.isNull(instance)) {
+            instance = new RoundRobinStrategy();
+        }
+        return instance;
+    }
+
     @Override
     public Backend select(Set<Backend> backends) {
 

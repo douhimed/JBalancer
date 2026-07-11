@@ -19,6 +19,12 @@ public class DefaultBackendRegistry implements BackendRegistry {
     }
 
     @Override
+    public BackendRegistry register(Set<Backend> backendsSet) {
+        backendsSet.forEach(this::register);
+        return this;
+    }
+
+    @Override
     public void unregister(String backendId) {
         backends.remove(backendId);
         statuses.remove(backendId);

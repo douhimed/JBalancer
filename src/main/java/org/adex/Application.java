@@ -1,49 +1,54 @@
 package org.adex;
 
-import org.adex.backend.Backend;
 import org.adex.backend.BackendRegistry;
 import org.adex.backend.DefaultBackendRegistry;
+import org.adex.config.HealthCheck;
+import org.adex.config.LoadBalancerConfig;
+import org.adex.config.StrategyFactory;
+import org.adex.config.YamlConfigLoader;
 import org.adex.health.DefaultHealthChecker;
+import org.adex.health.HealthCheckScheduler;
 import org.adex.health.HealthCheckService;
 import org.adex.proxy.DefaultRequestForwarder;
 import org.adex.proxy.DefaultReverseProxy;
 import org.adex.proxy.RequestForwarder;
 import org.adex.server.DefaultLoadBalancerServer;
 import org.adex.server.LoadBalancerServer;
-import org.adex.strategy.RoundRobinStrategy;
+import org.adex.strategy.LoadBalancingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Objects;
 
 public interface Application {
 
     Logger LOGGER = LoggerFactory.getLogger(Application.class);
 
-    static void main() {
-
-
+    static void main(String... args) {
         LoadBalancerServer server = null;
 
         try {
+            LoadBalancerConfig loadBalancerConfig = new YamlConfigLoader().load(args[0]);
 
-            BackendRegistry backendRegistry = new DefaultBackendRegistry();
+            final BackendRegistry backendRegistry = new DefaultBackendRegistry();
 
-            Backend backend1 = new Backend("backend-1", "localhost", 9001, 1);
-            Backend backend2 = new Backend("backend-2", "localhost", 9002, 2);
-            Backend backend3 = new Backend("backend-3", "localhost", 9003, 1);
-            Backend backend4 = new Backend("backend-4", "localhost", 9004, 1);
+            backendRegistry.register(loadBalancerConfig.backends());
 
-            backendRegistry.register(backend1).register(backend2).register(backend3).register(backend4);
+            HealthCheck healthCheck = loadBalancerConfig.healthCheck();
 
-            DefaultHealthChecker healthChecker = new DefaultHealthChecker();
-            HealthCheckService healthCheckService = new HealthCheckService(healthChecker, backendRegistry);
-            healthCheckService.checkAll();
+            if (Objects.nonNull(healthCheck)) {
+                final HealthCheckService healthCheckService = new HealthCheckService(new DefaultHealthChecker(healthCheck.path()), backendRegistry);
+                final HealthCheckScheduler healthCheckScheduler = new HealthCheckScheduler(healthCheckService, healthCheck.duration());
+                healthCheckScheduler.start();
+            }
 
             LOGGER.info("Registered {} backend servers", backendRegistry.allBackends().size());
 
-            final RoundRobinStrategy roundRobinStrategy = new RoundRobinStrategy();
+            final LoadBalancingStrategy roundRobinStrategy = StrategyFactory.create(loadBalancerConfig.strategy());
+
             final RequestForwarder requestForwarder = new DefaultRequestForwarder();
             final DefaultReverseProxy proxy = new DefaultReverseProxy(backendRegistry, roundRobinStrategy, requestForwarder);
-            server = new DefaultLoadBalancerServer(8080, proxy);
+            server = new DefaultLoadBalancerServer(loadBalancerConfig.port(), proxy);
 
             server.start();
 
@@ -59,6 +64,8 @@ public interface Application {
                                 LOGGER.info("Load balancer stoped");
                             })
                     );
+
+
 
         } catch (Exception e) {
             LOGGER.error("Failed to start load balancer", e);
