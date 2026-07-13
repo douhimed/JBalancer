@@ -19,9 +19,8 @@ public class DefaultBackendRegistry implements BackendRegistry {
     }
 
     @Override
-    public BackendRegistry register(Set<Backend> backendsSet) {
+    public void register(Set<Backend> backendsSet) {
         backendsSet.forEach(this::register);
-        return this;
     }
 
     @Override

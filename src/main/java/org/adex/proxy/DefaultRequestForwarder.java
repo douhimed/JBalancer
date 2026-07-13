@@ -4,28 +4,25 @@ import com.sun.net.httpserver.HttpExchange;
 import org.adex.backend.Backend;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.http.*;
 
 public class DefaultRequestForwarder implements RequestForwarder {
 
-    private final HttpClient  httpClient;
+
+    private final HttpClient client;
 
     public DefaultRequestForwarder() {
-        this.httpClient = HttpClient.newBuilder().build();
+        this.client = HttpClient.newBuilder().build();
     }
 
     @Override
     public HttpResponse<byte[]> forward(Backend backend, HttpExchange exchange) throws Exception {
-
-        final URI uri = URI.create(backend.url() + exchange.getRequestURI());
-
-        final HttpRequest request = HttpRequest.newBuilder()
-                .uri(uri)
-                .method(exchange.getRequestMethod(), HttpRequest.BodyPublishers.noBody())
-                .build();
-
-        return httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        URI uri = URI.create(backend.url() + exchange.getRequestURI());
+        HttpRequest request = HttpRequest.newBuilder()
+                        .uri(uri)
+                        .method(exchange.getRequestMethod(),
+                                HttpRequest.BodyPublishers.ofByteArray(exchange.getRequestBody().readAllBytes()))
+                        .build();
+        return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
     }
 }

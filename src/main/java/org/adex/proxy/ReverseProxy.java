@@ -4,5 +4,5 @@ import com.sun.net.httpserver.HttpExchange;
 
 public interface ReverseProxy {
 
-    void forward(HttpExchange exchange) throws Exception;
+    void forward(HttpExchange exchange);
 }
