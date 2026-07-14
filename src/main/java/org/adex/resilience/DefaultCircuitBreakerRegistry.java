@@ -17,7 +17,6 @@ public class DefaultCircuitBreakerRegistry implements  CircuitBreakerRegistry {
     private final Duration resetTimeout;
 
     public DefaultCircuitBreakerRegistry(int failureThreshold, Duration resetTimeout) {
-
         this.failureThreshold = failureThreshold;
         this.resetTimeout = resetTimeout;
     }
@@ -25,9 +24,7 @@ public class DefaultCircuitBreakerRegistry implements  CircuitBreakerRegistry {
     @Override
     public void register(Backend backend) {
         Objects.requireNonNull(backend);
-
-        breakers.putIfAbsent(backend.id(),
-                new DefaultCircuitBreaker(failureThreshold, resetTimeout));
+        breakers.putIfAbsent(backend.id(), new DefaultCircuitBreaker(failureThreshold, resetTimeout));
     }
 
     @Override

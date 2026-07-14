@@ -20,8 +20,7 @@ public class DefaultRequestForwarder implements RequestForwarder {
         URI uri = URI.create(backend.url() + exchange.getRequestURI());
         HttpRequest request = HttpRequest.newBuilder()
                         .uri(uri)
-                        .method(exchange.getRequestMethod(),
-                                HttpRequest.BodyPublishers.ofByteArray(exchange.getRequestBody().readAllBytes()))
+                        .method(exchange.getRequestMethod(), HttpRequest.BodyPublishers.ofByteArray(exchange.getRequestBody().readAllBytes()))
                         .build();
         return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
     }

@@ -1,4 +1,4 @@
-package org.adex.proxy;
+package org.adex.server;
 
 import com.sun.net.httpserver.HttpExchange;
 
@@ -8,5 +8,5 @@ public interface ResponseWriter {
 
     void write(HttpExchange exchange, HttpResponse<byte[]> response) throws Exception;
 
-    void error(HttpExchange exchange, int status, String message) throws Exception;
+    void write(HttpExchange exchange, int status, String message) throws Exception;
 }

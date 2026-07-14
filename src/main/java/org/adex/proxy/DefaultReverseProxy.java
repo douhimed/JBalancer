@@ -7,6 +7,8 @@ import org.adex.backend.BackendRegistry;
 import org.adex.metrics.MetricsCollector;
 import org.adex.resilience.CircuitBreaker;
 import org.adex.resilience.CircuitBreakerRegistry;
+import org.adex.server.DefaultResponseWriter;
+import org.adex.server.ResponseWriter;
 import org.adex.strategy.LoadBalancingStrategy;
 
 
@@ -24,9 +26,9 @@ public class DefaultReverseProxy implements ReverseProxy {
 
     private final LoadBalancingStrategy strategy;
 
-    private final RequestForwarder requestForwarder;
+    private RequestForwarder requestForwarder;
 
-    private final ResponseWriter responseWriter;
+    private ResponseWriter responseWriter;
 
     private final MetricsCollector metricsCollector;
 
@@ -35,17 +37,15 @@ public class DefaultReverseProxy implements ReverseProxy {
     public DefaultReverseProxy(
             BackendRegistry backendRegistry,
             LoadBalancingStrategy strategy,
-            RequestForwarder requestForwarder,
-            ResponseWriter responseWriter,
             MetricsCollector metricsCollector,
             CircuitBreakerRegistry circuitBreakerRegistry) {
 
         this.backendRegistry = Objects.requireNonNull(backendRegistry);
         this.strategy = Objects.requireNonNull(strategy);
-        this.requestForwarder = Objects.requireNonNull(requestForwarder);
-        this.responseWriter = Objects.requireNonNull(responseWriter);
         this.metricsCollector = Objects.requireNonNull(metricsCollector);
         this.circuitBreakerRegistry = Objects.requireNonNull(circuitBreakerRegistry);
+        this.requestForwarder = new DefaultRequestForwarder();
+        this.responseWriter = new DefaultResponseWriter();
     }
 
     @Override
@@ -57,13 +57,13 @@ public class DefaultReverseProxy implements ReverseProxy {
             Backend backend = selectBackend();
             if (backend == null) {
                 metricsCollector.recordFailure();
-                responseWriter.error(exchange, 503, "No backend available");
+                responseWriter.write(exchange, 503, "No backend available");
                 return;
             }
             breaker = circuitBreakerRegistry.get(backend.id());
             if (!breaker.allow()) {
                 metricsCollector.recordFailure();
-                responseWriter.error(exchange, 503, "Backend temporarily unavailable");
+                responseWriter.write(exchange, 503, "Backend temporarily unavailable");
                 return;
             }
 
@@ -103,12 +103,20 @@ public class DefaultReverseProxy implements ReverseProxy {
 
     private void safeError(HttpExchange exchange, int status, String message) {
         try {
-            responseWriter.error(exchange, status, message);
+            responseWriter.write(exchange, status, message);
         } catch (Exception ignored) {
         }
     }
 
     private long latency(long start) {
         return (System.nanoTime() - start) / 1_000_000;
+    }
+
+    public void withRequestForwarder(RequestForwarder requestForwarder) {
+        this.requestForwarder = Objects.requireNonNull(requestForwarder);
+    }
+
+    public void withResponseWriter(ResponseWriter responseWriter) {
+        this.responseWriter = Objects.requireNonNull(responseWriter);
     }
 }

@@ -2,29 +2,31 @@ package org.adex.metrics;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import org.adex.server.DefaultResponseWriter;
+import org.adex.server.ResponseWriter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 public class MetricsHandler implements HttpHandler {
 
     private final MetricsCollector metricsCollector;
+    private ResponseWriter  responseWriter;
 
     public MetricsHandler(MetricsCollector metricsCollector) {
+        this(metricsCollector, new DefaultResponseWriter());
+    }
+
+    public MetricsHandler(MetricsCollector metricsCollector, ResponseWriter responseWriter) {
         this.metricsCollector = metricsCollector;
+        this.responseWriter = responseWriter;
     }
 
     @Override
     public void handle(HttpExchange exchange) {
         try {
             MetricsSnapshot snapshot = metricsCollector.snapshot();
-
             String response = snapshot.capture();
-
-            byte[] body = response.getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
+            responseWriter.write(exchange, 200, response);
         } catch (Exception e) {
             try {
                 exchange.sendResponseHeaders(500, 0);

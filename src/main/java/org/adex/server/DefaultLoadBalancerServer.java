@@ -11,71 +11,65 @@ import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class DefaultLoadBalancerServer implements LoadBalancerServer {
 
-    private final int port;
-    private final ReverseProxy proxy;
-    private HttpServer server;
-    private final AtomicBoolean running = new AtomicBoolean(false);
-    private final MetricsCollector metricsCollector;
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultLoadBalancerServer.class);
 
-    public DefaultLoadBalancerServer(int port, ReverseProxy proxy, MetricsCollector metricsCollector) {
+    private static final String ROOT_CONTEXT = "/";
+    private static final String METRICS_CONTEXT = "/metrics";
+
+    private final int port;
+    private final ReverseProxy reverseProxy;
+    private final MetricsCollector metricsCollector;
+    private final ResponseWriter responseWriter;
+    private final AtomicBoolean running = new AtomicBoolean();
+
+    private HttpServer server;
+
+    public DefaultLoadBalancerServer(int port, ReverseProxy reverseProxy, MetricsCollector metricsCollector) {
+        this(port, reverseProxy, metricsCollector, new DefaultResponseWriter());
+    }
+
+    public DefaultLoadBalancerServer(int port, ReverseProxy reverseProxy, MetricsCollector metricsCollector, ResponseWriter responseWriter) {
         this.port = port;
-        this.proxy = Objects.requireNonNull(proxy, "reverse proxy cannot be null");
-        this.metricsCollector = Objects.requireNonNull(metricsCollector, "metrics collector cannot be null");
+        this.reverseProxy = Objects.requireNonNull(reverseProxy);
+        this.metricsCollector = Objects.requireNonNull(metricsCollector);
+        this.responseWriter = Objects.requireNonNull(responseWriter);
     }
 
     @Override
-    public void start() throws Exception {
+    public synchronized void start() throws IOException {
 
-        if (running.get()) {
-            throw new IllegalStateException("Server is already stopped");
+        if (!running.compareAndSet(false, true)) {
+            throw new IllegalStateException("Load balancer is already running");
         }
 
         try {
-            server = HttpServer.create(new InetSocketAddress(port), 0);
-            setRootContext();
-            setMetricsContext();
+            server = createServer();
+            registerContexts();
             server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
             server.start();
-            running.set(true);
+            LOGGER.info("HTTP server started on port {}", port);
         } catch (IOException e) {
-            throw new Exception("Failed to start load balancer on port " + port, e);
+            running.set(false);
+            throw e;
         }
-
-    }
-
-    private void setMetricsContext() {
-        server.createContext("/metrics", new MetricsHandler(metricsCollector));
-    }
-
-    private void setRootContext() {
-        server.createContext("/", exchange -> {
-            try {
-                proxy.forward(exchange);
-            } catch (Exception e) {
-                e.printStackTrace();
-
-                byte[] res = "Internal Server Error".getBytes();
-                exchange.sendResponseHeaders(500, res.length);
-                exchange.getResponseBody().write(res);
-            } finally {
-                exchange.close();
-            }
-        });
     }
 
     @Override
     public synchronized void stop() {
-        if (!running.get()) {
+        if (!running.compareAndSet(true, false)) {
             return;
         }
 
         if (server != null) {
+            LOGGER.info("Stopping HTTP server...");
             server.stop(0);
+            LOGGER.info("HTTP server stopped");
         }
-
-        running.set(false);
     }
 
     @Override
@@ -86,5 +80,33 @@ public class DefaultLoadBalancerServer implements LoadBalancerServer {
     @Override
     public int port() {
         return port;
+    }
+
+    private HttpServer createServer() throws IOException {
+        return HttpServer.create(new InetSocketAddress(port), 0);
+    }
+
+    private void registerContexts() {
+        registerProxyContext();
+        registerMetricsContext();
+    }
+
+    private void registerProxyContext() {
+        server.createContext(ROOT_CONTEXT, exchange -> {
+            try {
+                reverseProxy.forward(exchange);
+            } catch (Exception e) {
+                LOGGER.error("Failed to process request {} {}", exchange.getRequestMethod(), exchange.getRequestURI(), e);
+                try {
+                    responseWriter.write(exchange, 500, "Internal Server Error");
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        });
+    }
+
+    private void registerMetricsContext() {
+        server.createContext(METRICS_CONTEXT, new MetricsHandler(metricsCollector));
     }
 }

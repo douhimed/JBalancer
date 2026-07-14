@@ -10,8 +10,6 @@ import org.adex.health.HealthCheckService;
 import org.adex.health.DefaultHealthChecker;
 import org.adex.metrics.DefaultMetricsCollector;
 import org.adex.metrics.MetricsCollector;
-import org.adex.proxy.DefaultRequestForwarder;
-import org.adex.proxy.DefaultResponseWriter;
 import org.adex.proxy.DefaultReverseProxy;
 import org.adex.resilience.CircuitBreaker;
 import org.adex.resilience.CircuitBreakerRegistry;
@@ -81,7 +79,7 @@ public interface Application {
              */
             if (hasTestArgument(args)) {
                 testCircuitBreaker(circuitBreakerRegistry);
-                return;
+                //return;
             }
 
             /*
@@ -116,14 +114,7 @@ public interface Application {
              * Reverse proxy
              * ============================
              */
-            DefaultReverseProxy proxy =
-                    new DefaultReverseProxy(
-                            backendRegistry,
-                            strategy,
-                            new DefaultRequestForwarder(),
-                            new DefaultResponseWriter(),
-                            metricsCollector,
-                            circuitBreakerRegistry);
+            DefaultReverseProxy proxy = new DefaultReverseProxy(backendRegistry, strategy, metricsCollector, circuitBreakerRegistry);
 
             /*
              * ============================

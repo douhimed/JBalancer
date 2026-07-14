@@ -1,4 +1,4 @@
-package org.adex.proxy;
+package org.adex.server;
 
 import com.sun.net.httpserver.HttpExchange;
 
@@ -16,7 +16,7 @@ public class DefaultResponseWriter implements ResponseWriter {
     }
 
     @Override
-    public void error(HttpExchange exchange, int status, String message) throws Exception {
+    public void write(HttpExchange exchange, int status, String message) throws Exception {
         byte[] body = message.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "text/plain");
         exchange.sendResponseHeaders(status, body.length);
